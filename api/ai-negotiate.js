@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Configurar CORS para aceitar requisições do seu app
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -25,7 +24,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Chave da API do Gemini não configurada no servidor.' });
     }
 
-    // Montar o prompt estratégico para o Gemini
     const prompt = `Atue como um agente especialista em negociação de publis para influenciadores digitais. 
     O criador tem ${followers || 100}k seguidores e uma taxa de engajamento de ${engagement || 4.8}%.
     A marca enviou a seguinte mensagem/proposta: "${brandMessage}".
@@ -35,8 +33,8 @@ export default async function handler(req, res) {
     2. O valor de cachê sugerido em Reais (R$).
     3. Uma sugestão de resposta profissional pronta para o criador copiar e colar para a marca.`;
 
-    // Chamar diretamente a API oficial do Google Gemini
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // Utilizando a versão atualizada da API do Gemini Flash (gemini-3.8-flash)
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
