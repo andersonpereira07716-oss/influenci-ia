@@ -33,8 +33,8 @@ export default async function handler(req, res) {
     2. O valor de cachê sugerido em Reais (R$).
     3. Uma sugestão de resposta profissional pronta para o criador copiar e colar para a marca.`;
 
-    // Lista de modelos para fallback em ordem de preferência
-    const models = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-2.0-flash'];
+    // Apenas modelos atuais e suportados
+    const models = ['gemini-3.8-flash', 'gemini-2.5-flash'];
     let aiText = null;
     let lastError = null;
 
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
           aiText = data.candidates[0].content.parts[0].text;
           break; // Sucesso, sai do loop
         } else {
-          lastError = data.error?.message || 'Erro desconhecido';
+          lastError = data.error?.message || 'Erro no processamento da API';
         }
       } catch (err) {
         lastError = err.message;
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     if (aiText) {
       return res.status(200).json({ result: aiText });
     } else {
-      return res.status(503).json({ error: `Servidores da IA sobrecarregados momentaneamente. (${lastError})` });
+      return res.status(503).json({ error: `Servidores da IA sobrecarregados. Tente novamente em instantes. (${lastError})` });
     }
 
   } catch (error) {
