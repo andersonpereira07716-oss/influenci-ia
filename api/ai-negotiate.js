@@ -33,26 +33,39 @@ export default async function handler(req, res) {
     2. O valor de cachê sugerido em Reais (R$).
     3. Uma sugestão de resposta profissional pronta para o criador copiar e colar para a marca.`;
 
-    // Utilizando a versão atualizada da API do Gemini Flash (gemini-3.8-flash)
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
+    // Lista de modelos para fallback em ordem de preferência
+    const models = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-2.0-flash'];
+    let aiText = null;
+    let lastError = null;
 
-    const data = await response.json();
-    
-    if (data.error) {
-      return res.status(400).json({ error: data.error.message });
+    for (const model of models) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+
+        const data = await response.json();
+
+        if (!data.error && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          aiText = data.candidates[0].content.parts[0].text;
+          break; // Sucesso, sai do loop
+        } else {
+          lastError = data.error?.message || 'Erro desconhecido';
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
     }
 
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Não foi possível gerar a resposta no momento.';
-
-    return res.status(200).json({ result: aiText });
+    if (aiText) {
+      return res.status(200).json({ result: aiText });
+    } else {
+      return res.status(503).json({ error: `Servidores da IA sobrecarregados momentaneamente. (${lastError})` });
+    }
 
   } catch (error) {
     return res.status(500).json({ error: 'Erro interno ao processar a inteligência artificial.' });
