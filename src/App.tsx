@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, DollarSign, Users, TrendingUp, MessageSquare, ShieldCheck, Send, Copy, Check, Calculator, FileText, Plus, Trash2 } from 'lucide-react';
+import { Sparkles, DollarSign, Users, TrendingUp, MessageSquare, ShieldCheck, Send, Copy, Check, Calculator, FileText } from 'lucide-react';
 
 interface Deal {
   id: string;
@@ -12,7 +12,7 @@ interface Deal {
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'negotiator' | 'calculator' | 'contracts' | 'mediakit'>('dashboard');
   
-  // Negociador IA
+  // Negociador IA (Conectado ao Backend Seguro)
   const [brandMessage, setBrandMessage] = useState('');
   const [proposalResult, setProposalResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,19 +44,35 @@ export default function App() {
 
   const totalRevenue = deals.reduce((acc, deal) => deal.status === 'Fechado' ? acc + deal.value : acc, 18450);
 
-  const handleAiNegotiate = (e: React.FormEvent) => {
+  const handleAiNegotiate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!brandMessage.trim()) return;
     
     setLoading(true);
     setProposalResult(null);
 
-    setTimeout(() => {
+    try {
+      // Determina a URL do backend (funciona local e em produção na Vercel)
+      const endpoint = '/api/ai-negotiate';
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandMessage, followers, engagement })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        setProposalResult(`❌ Erro da IA: ${data.error}`);
+      } else {
+        setProposalResult(data.result);
+      }
+    } catch (err) {
+      setProposalResult('❌ Erro de conexão com o servidor seguro da IA.');
+    } finally {
       setLoading(false);
-      setProposalResult(
-        `🤖 **Análise da Inteligência:**\nA marca solicitou divulgação sem definir orçamento explícito.\n\n**Sugestão de Resposta Profissional:**\n"Olá! Obrigado pelo contacto e interesse em colaborar connosco. Para o formato de conteúdo com maior retorno no nosso perfil, o valor de investimento para este pacote é de R$ 4.500,00. Podemos avançar com o envio do briefing e termo de parceria?"`
-      );
-    }, 1000);
+    }
   };
 
   const calculateCache = (e: React.FormEvent) => {
@@ -99,12 +115,12 @@ export default function App() {
             <h1 className="font-bold text-base tracking-tight bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Influenci IA
             </h1>
-            <p className="text-[10px] text-slate-400">Autonomia & Gestão para Criadores</p>
+            <p className="text-[10px] text-slate-400">Segurança & IA Integrada</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-full text-[10px] text-emerald-400 font-medium">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          IA Ativa
+          API Backend Ativa
         </div>
       </header>
 
@@ -186,10 +202,10 @@ export default function App() {
 
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
               <h3 className="text-xs font-semibold text-slate-200 mb-2 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-purple-400" /> Alertas da Inteligência
+                <ShieldCheck className="w-4 h-4 text-purple-400" /> Blindagem & Segurança
               </h3>
               <p className="text-[11px] text-slate-300 leading-relaxed bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                ⚡ 3 marcas enviaram mensagem direta hoje sem propor cachê. Utilize a aba <b>Negociador</b> para filtrar e gerar respostas automáticas.
+                🛡️ O sistema utiliza Serverless Proxy na Vercel. Suas chaves de IA estão protegidas contra inspeção de código no frontend.
               </p>
             </div>
           </div>
@@ -199,10 +215,10 @@ export default function App() {
           <div className="space-y-4">
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
               <h3 className="text-xs font-semibold text-white mb-1 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-purple-400" /> Resposta Automática para DMs de Marcas
+                <MessageSquare className="w-4 h-4 text-purple-400" /> Negociador de DMs com IA Real (Gemini)
               </h3>
               <p className="text-[11px] text-slate-400 mb-3">
-                Cole a proposta da marca para que a IA avalie se vale a pena e crie uma resposta profissional cobrando o justo.
+                Cole a mensagem enviada pela marca. A IA analisa via backend seguro e retorna a estratégia de resposta.
               </p>
 
               <form onSubmit={handleAiNegotiate} className="space-y-3">
@@ -210,7 +226,7 @@ export default function App() {
                   rows={3}
                   value={brandMessage}
                   onChange={(e) => setBrandMessage(e.target.value)}
-                  placeholder="Ex: 'Olá, adoramos o teu perfil. Queremos mandar um kit em troca de divulgação...'"
+                  placeholder="Ex: 'Olá, queremos mandar um produto em troca de divulgação nos stories...'"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-500 resize-none"
                 />
                 <button
@@ -218,7 +234,7 @@ export default function App() {
                   disabled={loading || !brandMessage.trim()}
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 disabled:opacity-50"
                 >
-                  {loading ? 'Analisando proposta...' : <><Send className="w-3.5 h-3.5" /> Analisar e Gerar Resposta</>}
+                  {loading ? 'Consultando a IA com segurança...' : <><Send className="w-3.5 h-3.5" /> Analisar via API Segura</>}
                 </button>
               </form>
             </div>
@@ -226,7 +242,7 @@ export default function App() {
             {proposalResult && (
               <div className="bg-purple-950/20 border border-purple-500/40 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-purple-300">Parecer da IA</span>
+                  <span className="text-xs font-semibold text-purple-300">Parecer do Google Gemini</span>
                   <button
                     onClick={() => copyToClipboard(proposalResult)}
                     className="text-[10px] text-purple-400 flex items-center gap-1 bg-purple-950/50 px-2 py-1 rounded border border-purple-800/50"
@@ -250,7 +266,7 @@ export default function App() {
                 <Calculator className="w-4 h-4 text-purple-400" /> Precificador de Publi por IA
               </h3>
               <p className="text-[11px] text-slate-400 mb-3">
-                Descubra o valor exato que você deve cobrar por pacote (Stories + Reels) com base nas suas métricas.
+                Descubra o valor exato que você deve cobrar por pacote com base nas suas métricas.
               </p>
 
               <form onSubmit={calculateCache} className="space-y-3">
@@ -390,7 +406,7 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => copyToClipboard("https://influenci-ia.app/m/anderson")}
+              onClick={() => copyData("https://influenci-ia.vercel.app/m/anderson")}
               className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-medium py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all"
             >
               <Copy className="w-4 h-4 text-purple-400" /> Copiar Link do Mídia Kit Dinâmico
@@ -400,4 +416,9 @@ export default function App() {
       </main>
     </div>
   );
+
+  function copyData(text: string) {
+    navigator.clipboard.writeText(text);
+    alert('Link copiado com sucesso!');
+  }
 }
