@@ -1,48 +1,40 @@
-export const config = {
-  runtime: 'edge', // Usa a Edge Runtime da Vercel para streaming ultrarrápido
-};
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
 
-export default async function handler(req) {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
+    res.status(200).end();
+    return;
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Método não permitido' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(405).json({ error: 'Método não permitido. Use POST.' });
   }
 
   try {
-    const { brandMessage, followers, engagement } = await req.json();
+    const { brandMessage, followers, engagement } = req.body;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     if (!GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Chave API não encontrada.' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(500).json({ error: 'Chave da API do Gemini não configurada no servidor.' });
     }
 
-    const prompt = `Analise de negociação para criador de conteúdo:
-    Métricas: ${followers || 100}k seguidores | ${engagement || 4.8}% engajamento.
-    Proposta recebida: "${brandMessage}".
+    const prompt = `Atue como um especialista em negociação de publis para influenciadores digitais.
+    Dados do criador: ${followers || 100}k seguidores, ${engagement || 4.8}% de engajamento.
+    Proposta da marca: "${brandMessage}".
     
-    Retorne de forma objetiva:
-    1. Análise de Viabilidade (vale a pena ou se o valor está abaixo).
-    2. Cachê Sugerido (em R$).
-    3. Resposta Profissional Pronta para copiar e colar para a marca.`;
+    Retorne de forma estruturada, objetiva e direta:
+    1. Análise se vale a pena ou se está abaixo do valor de mercado.
+    2. Cachê sugerido em Reais (R$).
+    3. Sugestão de resposta profissional e persuasiva pronta para o criador copiar e enviar para a marca.`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,24 +42,27 @@ export default async function handler(req) {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 600,
-          },
-        }),
+            maxOutputTokens: 600
+          }
+        })
       }
     );
 
-    return new Response(response.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: 'Erro interno no servidor.' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const data = await response.json();
+
+    if (data.error) {
+      return res.status(500).json({ error: data.error.message || 'Erro no processamento da IA.' });
+    }
+
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (aiText) {
+      return res.status(200).json({ result: aiText });
+    } else {
+      return res.status(503).json({ error: 'Servidores da IA sobrecarregados. Tente novamente em instantes.' });
+    }
+
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro interno ao processar a inteligência artificial.' });
   }
 }
