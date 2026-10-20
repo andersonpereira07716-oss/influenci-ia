@@ -128,6 +128,12 @@ export default function App() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  
+  useEffect(() => {
+    localStorage.setItem('influenci_ia_vip', 'true');
+    localStorage.setItem('influenci_ia_usage', '0');
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-10">
       {/* Header */}
