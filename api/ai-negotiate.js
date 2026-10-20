@@ -33,38 +33,28 @@ export default async function handler(req, res) {
     2. O valor de cachê sugerido em Reais (R$).
     3. Uma sugestão de resposta profissional pronta para o criador copiar e colar para a marca.`;
 
-    // Apenas modelos atuais e suportados
-    const models = ['gemini-3.8-flash', 'gemini-2.5-flash'];
-    let aiText = null;
-    let lastError = null;
+    const model = 'gemini-3.8-flash';
 
-    for (const model of models) {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
-        });
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (!data.error && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          aiText = data.candidates[0].content.parts[0].text;
-          break; // Sucesso, sai do loop
-        } else {
-          lastError = data.error?.message || 'Erro no processamento da API';
-        }
-      } catch (err) {
-        lastError = err.message;
-      }
+    if (data.error) {
+      return res.status(500).json({ error: data.error.message || 'Erro na resposta da API Gemini.' });
     }
+
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (aiText) {
       return res.status(200).json({ result: aiText });
     } else {
-      return res.status(503).json({ error: `Servidores da IA sobrecarregados. Tente novamente em instantes. (${lastError})` });
+      return res.status(503).json({ error: 'Não foi possível obter resposta da IA no momento. Tente novamente.' });
     }
 
   } catch (error) {
