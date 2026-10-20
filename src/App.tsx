@@ -13,9 +13,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'negotiator' | 'calculator' | 'contracts' | 'mediakit'>('dashboard');
   
   // Controle Freemium (Limites e Status VIP)
-  const [isVip, setIsVip] = useState<boolean>(() => {
-    return localStorage.getItem('influenci_ia_vip') === 'true';
-  });
+  const [isVip, setIsVip] = useState<boolean>(true);
   const [usageCount, setUsageCount] = useState<number>(() => {
     return Number(localStorage.getItem('influenci_ia_usage') || 0);
   });
