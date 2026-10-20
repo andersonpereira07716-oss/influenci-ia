@@ -62,7 +62,7 @@ export default function App() {
     }
   };
 
-  const handleAiNegotiate = async (e: React.FormEvent) => {
+    const handleAiNegotiate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!brandMessage.trim()) return;
 
@@ -72,7 +72,7 @@ export default function App() {
     }
     
     setLoading(true);
-    setProposalResult(null);
+    setProposalResult('');
 
     try {
       const response = await fetch('/api/ai-negotiate', {
@@ -81,16 +81,40 @@ export default function App() {
         body: JSON.stringify({ brandMessage, followers, engagement })
       });
 
-      const data = await response.json();
-
-      if (data.error) {
-        setProposalResult(`❌ Erro da IA: ${data.error}`);
-      } else {
-        setProposalResult(data.result);
-        incrementUsage();
+      if (!response.ok) {
+        throw new Error('Erro na resposta do servidor.');
       }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) return;
+
+      let fullText = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonData = JSON.parse(line.replace('data: ', ''));
+              const textChunk = jsonData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              fullText += textChunk;
+              setProposalResult(fullText);
+            } catch (e) {
+              // Ignora dados incompletos de parse
+            }
+          }
+        }
+      }
+
+      incrementUsage();
     } catch (err) {
-      setProposalResult('❌ Erro de conexão com o servidor seguro da IA.');
+      setProposalResult('❌ Erro de conexão ao processar streaming com a IA.');
     } finally {
       setLoading(false);
     }
